@@ -1,19 +1,14 @@
-<footer style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 48px 24px 32px 24px;" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
-	<div style="max-width: 1152px; margin: 0 auto;">
-		<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 36px; margin-bottom: 40px;">
-			<!-- Coluna 1: Logo e Descrição Institucional -->
+<footer style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding-top: 48px; padding-bottom: 24px; color: #334155;">
+	<div style="max-width: 1200px; margin: 0 auto; padding-left: 20px; padding-right: 20px;">
+		<!-- Grid de 3 Colunas: Sobre, Links Úteis, Contato & Assinatura -->
+		<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 40px; margin-bottom: 40px;">
+			<!-- Coluna 1: Sobre a Plataforma ZenyDesk ERP -->
 			<div>
-				<div style="margin-bottom: 18px;">
-					<a href="{{ url('/') }}" style="display: inline-block;">
-						<img
-							src="{{ asset('images/zenydesk-erp-logo.png') }}?v={{ filemtime(public_path('images/zenydesk-erp-logo.png')) }}"
-							alt="ZenyDesk ERP"
-							style="height: 36px; width: auto; object-fit: contain;"
-						/>
-					</a>
+				<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+					<img src="{{ asset('images/zenydesk-erp-logo.png') }}" alt="ZenyDesk ERP" style="height: 38px; width: auto;" />
 				</div>
 
-				<p style="margin-bottom: 12px; color: #475569; font-size: 14px; line-height: 1.6;">
+				<p style="color: #475569; font-size: 14px; line-height: 1.6; margin-bottom: 12px;">
 					Projetado para otimizar e simplificar as operações do negócio, o ZenyDesk ERP é adequado para empresas de todos os portes.
 				</p>
 
@@ -129,7 +124,7 @@
 				Direitos autorais © ZenyDesk ERP — Todos os direitos reservados.
 			</div>
 			<div>
-				Desenvolvido por : <a href="https://zenydesk.com/" style="color: #155dfc; font-weight: 700; text-decoration: none;" target="_blank" rel="noopener noreferrer" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">ZenyDesk ERP</a>
+				Desenvolvido por : <a href="https://aordic.com.br/" style="color: #f7931a; font-weight: 700; text-decoration: none;" target="_blank" rel="noopener noreferrer" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">AORDIC.COM.BR</a>
 			</div>
 		</div>
 	</div>

@@ -45,11 +45,7 @@ class Register extends Page
             redirect()->intended(Filament::getUrl());
         }
 
-        $this->callHook('beforeFill');
-
-        $this->form->fill();
-
-        $this->callHook('afterFill');
+        redirect()->to('/assinar');
     }
 
     public function register(): ?RegistrationResponse

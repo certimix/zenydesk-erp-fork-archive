@@ -7,11 +7,11 @@
                 </h1>
 
                 <p class="mt-2 text-sm text-center text-gray-500 fi-simple-header-subheading dark:text-gray-400">
-                    <a href="{{ filament()->getRegistrationUrl() }}" class="fi-link group/link fi-size-md fi-link-size-md fi-color-custom fi-color-primary fi-ac-action fi-ac-link-action relative inline-flex items-center justify-center gap-1.5 outline-none">
-                        {{ __('website::filament/customer/pages/auth/login.actions.register.before') }}
+                    <a href="{{ url('/assinar') }}" class="fi-link group/link fi-size-md fi-link-size-md fi-color-custom fi-color-primary fi-ac-action fi-ac-link-action relative inline-flex items-center justify-center gap-1.5 outline-none">
+                        Ainda não possui uma assinatura?
 
                         <span class="text-sm font-semibold text-custom-600 group-hover/link:underline group-focus-visible/link:underline dark:text-custom-400" style="--c-400:var(--primary-400);--c-600:var(--primary-600);">
-                            {{ $this->registerAction }}
+                            Conhecer planos e assinar &rarr;
                         </span>
                     </a>
                 </p>

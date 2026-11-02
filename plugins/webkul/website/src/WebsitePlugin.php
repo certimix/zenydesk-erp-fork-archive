@@ -116,7 +116,7 @@ class WebsitePlugin implements Plugin
                 ->visible(! Filament::auth()->check()),
             NavigationItem::make('Register')
                 ->label(fn () => __('website::filament/app.navigation.top.register'))
-                ->url(filament()->getRegistrationUrl())
+                ->url(url('/assinar'))
                 ->visible(! Filament::auth()->check()),
         ]);
     }

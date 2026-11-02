@@ -10,16 +10,17 @@ use Filament\Facades\Filament;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Models\Contracts\FilamentUser;
 use Filament\Notifications\Notification;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Support\Facades\Blade;
-use Illuminate\Support\HtmlString;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Webkul\Security\Models\User;
 
 class Login extends Page
 {
@@ -33,8 +34,9 @@ class Login extends Page
 
     public function mount(): void
     {
-        if (Filament::auth()->check()) {
-            redirect()->intended(Filament::getUrl());
+        if (Auth::guard('web')->check() || Filament::auth()->check()) {
+            redirect()->to('/admin');
+            return;
         }
 
         $this->form->fill();
@@ -51,25 +53,111 @@ class Login extends Page
         }
 
         $data = $this->form->getState();
+        $email = strtolower(trim($data['email'] ?? ''));
+        $password = $data['password'] ?? '';
 
-        if (! Filament::auth()->attempt($this->getCredentialsFromFormData($data), $data['remember'] ?? false)) {
-            $this->throwFailureValidationException();
+        // 1. Consulta no Banco de Dados pelo Usuário e Tenant
+        $user = User::whereRaw('LOWER(email) = ?', [$email])->first();
+        $tenant = DB::table('zeny_erp_tenants')
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->orWhere('admin_user_id', $user?->id ?? 0)
+            ->first();
+
+        // 2. CASO NÃO TENHA CONTA E NÃO PAGOU:
+        // O usuário não existe em 'users' e não possui registro em 'zeny_erp_tenants'
+        if (! $user && ! $tenant) {
+            Notification::make()
+                ->title('Conta não encontrada')
+                ->body('Não encontramos nenhuma conta com o e-mail informado. Convidamos você a conhecer nossos planos e assinar o ZenyDesk ERP para liberar seu acesso instantâneo!')
+                ->warning()
+                ->persistent()
+                ->actions([
+                    \Filament\Notifications\Actions\Action::make('assinar')
+                        ->button()
+                        ->label('Conhecer Planos e Assinar')
+                        ->url(url('/assinar')),
+                ])
+                ->send();
+
+            return null;
         }
 
-        $user = Filament::auth()->user();
+        // 3. CASO TENHA CADASTRO, MAS O PAGAMENTO ESTEJA PENDENTE OU SUSPENSO:
+        if ($tenant && in_array($tenant->status, ['pendente', 'cancelado', 'suspenso'], true)) {
+            $statusLabel = $tenant->status === 'pendente' ? 'aguardando confirmação do pagamento' : 'com pagamento pendente';
+            Notification::make()
+                ->title('Assinatura Pendente')
+                ->body("Sua assinatura para o ambiente [{$tenant->subdominio}.erp.zenydesk.com] está {$statusLabel}. Convidamos você a concluir o pagamento para ativar seu acesso imediato.")
+                ->warning()
+                ->persistent()
+                ->actions([
+                    \Filament\Notifications\Actions\Action::make('assinar')
+                        ->button()
+                        ->label('Concluir Assinatura')
+                        ->url(url('/assinar?sub='.$tenant->subdominio)),
+                ])
+                ->send();
 
-        if (
-            ($user instanceof FilamentUser) &&
-            (! $user->canAccessPanel(Filament::getCurrentOrDefaultPanel()))
-        ) {
-            Filament::auth()->logout();
-
-            $this->throwFailureValidationException();
+            return null;
         }
 
-        session()->regenerate();
+        // 4. CASO O USUÁRIO EXISTA NO BANCO DE DADOS:
+        if ($user) {
+            // Validação da senha
+            if (! Hash::check($password, $user->password)) {
+                throw ValidationException::withMessages([
+                    'data.password' => 'A senha informada está incorreta. Verifique suas credenciais e tente novamente.',
+                ]);
+            }
 
-        return app(LoginResponse::class);
+            // Verifica se o usuário está ativo
+            if (! $user->is_active) {
+                Notification::make()
+                    ->title('Usuário Desativado')
+                    ->body('Sua conta de usuário encontra-se desativada. Entre em contato com o administrador da sua empresa.')
+                    ->danger()
+                    ->send();
+
+                return null;
+            }
+
+            // Autentica o usuário no guard 'web'
+            Auth::guard('web')->login($user, $data['remember'] ?? false);
+            session()->regenerate();
+
+            // Mensagem calorosa de boas-vindas de volta
+            Notification::make()
+                ->title("Bem-vindo de volta, {$user->name}!")
+                ->body('Identificamos sua conta com sucesso no banco de dados. Acessando seu ambiente ZenyDesk ERP...')
+                ->success()
+                ->send();
+
+            // Determina a URL do ambiente do cliente
+            if ($tenant && ! empty($tenant->subdominio) && $tenant->subdominio !== 'erp') {
+                $redirectUrl = "https://{$tenant->subdominio}.erp.zenydesk.com/admin";
+            } elseif ($user->default_company_id) {
+                $company = DB::table('companies')->where('id', $user->default_company_id)->first();
+                if ($company && ! empty($company->subdominio) && $company->subdominio !== 'erp') {
+                    $redirectUrl = "https://{$company->subdominio}.erp.zenydesk.com/admin";
+                } else {
+                    $redirectUrl = url('/admin');
+                }
+            } else {
+                $redirectUrl = url('/admin');
+            }
+
+            redirect()->away($redirectUrl);
+
+            return null;
+        }
+
+        Notification::make()
+            ->title('Ambiente em Provisionamento')
+            ->body('Seu ambiente está sendo ativado. Por favor, acesse a página de assinatura ou aguarde alguns instantes.')
+            ->info()
+            ->send();
+
+        return null;
     }
 
     protected function getRateLimitedNotification(TooManyRequestsException $exception): ?Notification
@@ -84,13 +172,6 @@ class Login extends Page
                 'minutes' => $exception->minutesUntilAvailable,
             ]) : null)
             ->danger();
-    }
-
-    protected function throwFailureValidationException(): never
-    {
-        throw ValidationException::withMessages([
-            'data.email' => __('website::filament/customer/pages/auth/login.messages.failed'),
-        ]);
     }
 
     public function form(Schema $schema): Schema
@@ -128,7 +209,6 @@ class Login extends Page
     {
         return TextInput::make('password')
             ->label(__('website::filament/customer/pages/auth/login.form.password.label'))
-            ->hint(filament()->hasPasswordReset() ? new HtmlString(Blade::render('<x-filament::link :href="filament()->getRequestPasswordResetUrl()" tabindex="3"> {{ __(\'website::filament/customer/pages/auth/login.actions.request_password_reset.label\') }}</x-filament::link>')) : null)
             ->password()
             ->revealable(filament()->arePasswordsRevealable())
             ->autocomplete('current-password')
@@ -146,8 +226,8 @@ class Login extends Page
     {
         return Action::make('register')
             ->link()
-            ->label(__('website::filament/customer/pages/auth/login.actions.register.label'))
-            ->url(filament()->getRegistrationUrl());
+            ->label('Ainda não é assinante? Conheça os planos e assine já')
+            ->url(url('/assinar'));
     }
 
     public function getTitle(): string|Htmlable
@@ -177,13 +257,5 @@ class Login extends Page
     protected function hasFullWidthFormActions(): bool
     {
         return true;
-    }
-
-    protected function getCredentialsFromFormData(array $data): array
-    {
-        return [
-            'email'    => $data['email'],
-            'password' => $data['password'],
-        ];
     }
 }

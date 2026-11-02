@@ -1,6 +1,7 @@
 @php
     $isRtl = app()->getLocale() === 'ar';
     $visibleNavigationItems = isset($navigationItems) ? $navigationItems->filter(fn ($item) => $item->isVisible()) : collect();
+    $authUser = \Illuminate\Support\Facades\Auth::guard('web')->user() ?? filament()->auth()->user();
 @endphp
 
 <div style="display: flex; align-items: center; gap: 12px; {{ $isRtl ? 'flex-direction: row-reverse;' : '' }}">
@@ -17,8 +18,41 @@
         <span>Assinar ERP</span>
     </a>
 
-    @if (! filament()->auth()->check())
-        {{-- Desktop Links: Entrar / Cadastrar --}}
+    @if ($authUser)
+        @php
+            $tenant = \Illuminate\Support\Facades\DB::table('zeny_erp_tenants')
+                ->where('admin_user_id', $authUser->id)
+                ->orWhereRaw('LOWER(email) = ?', [strtolower(trim($authUser->email))])
+                ->first();
+            $panelUrl = ($tenant && !empty($tenant->subdominio) && $tenant->subdominio !== 'erp')
+                ? "https://{$tenant->subdominio}.erp.zenydesk.com/admin"
+                : url('/admin');
+        @endphp
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <a
+                href="{{ $panelUrl }}"
+                style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 13px; font-weight: 600; color: #1e293b !important; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; text-decoration: none !important; transition: all 0.2s;"
+                onmouseover="this.style.backgroundColor='#e2e8f0'"
+                onmouseout="this.style.backgroundColor='#f1f5f9'"
+            >
+                <svg style="width: 14px; height: 14px; fill: none; stroke: currentColor;" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                <span>Painel ERP ({{ $authUser->name }})</span>
+            </a>
+            <a
+                href="{{ url('/admin/logout') }}"
+                onclick="event.preventDefault(); document.getElementById('header-logout-form').submit();"
+                style="display: inline-flex; align-items: center; padding: 6px 12px; font-size: 13px; font-weight: 600; color: #ef4444 !important; text-decoration: none !important;"
+            >
+                Sair
+            </a>
+            <form id="header-logout-form" action="{{ url('/admin/logout') }}" method="POST" style="display: none;">
+                @csrf
+            </form>
+        </div>
+    @else
+        {{-- Desktop Links: Entrar / Cadastrar (apontando diretamente para /assinar para ninguém criar conta sem pagar) --}}
         <div style="display: flex; align-items: center; gap: 8px;">
             @foreach ($visibleNavigationItems as $item)
                 @php
@@ -27,7 +61,7 @@
 
                 @if ($isRegister)
                     <a
-                        href="{{ $item->getUrl() }}"
+                        href="{{ url('/assinar') }}"
                         style="display: inline-flex; align-items: center; padding: 6px 14px; font-size: 13px; font-weight: 600; color: #1e293b !important; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; text-decoration: none !important; transition: all 0.2s;"
                         onmouseover="this.style.backgroundColor='#e2e8f0'"
                         onmouseout="this.style.backgroundColor='#f1f5f9'"
