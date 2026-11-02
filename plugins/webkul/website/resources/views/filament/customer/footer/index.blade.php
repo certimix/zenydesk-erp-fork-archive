@@ -182,4 +182,7 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Efeito Fluido de Cursor Interativo (Splash Cursor) - Mesma animação e cor (#3b82f6) de os.zenydesk.com -->
+	<script src="{{ asset('js/splash-cursor.js') }}?v=20261102_v1"></script>
 </footer>
