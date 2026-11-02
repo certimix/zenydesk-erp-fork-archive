@@ -124,7 +124,7 @@
 				Direitos autorais © ZenyDesk ERP — Todos os direitos reservados.
 			</div>
 			<div>
-				Desenvolvido por : <a href="https://aordic.com.br/" style="color: #f7931a; font-weight: 700; text-decoration: none;" target="_blank" rel="noopener noreferrer" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">AORDIC.COM.BR</a>
+				Desenvolvido por : <a href="https://aordic.com" style="color: #f7931a; font-weight: 700; text-decoration: none;" target="_blank" rel="noopener noreferrer" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">AORDIC.COM</a>
 			</div>
 		</div>
 	</div>
